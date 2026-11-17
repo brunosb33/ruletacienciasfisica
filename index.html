@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ruleta del Saber · Juego en equipos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@500;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0f24; --panel:#141a3a; --panel2:#1c2350; --line:#2b3470;
+  --text:#f2f5ff; --muted:#9aa5d8; --gold:#ffd23f; --ok:#22c55e; --bad:#ef4444;
+  --cat:#8b5cf6;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{
+  font-family:'Nunito',system-ui,sans-serif;color:var(--text);
+  background:
+    radial-gradient(1200px 600px at 10% -10%, #2a1d6b 0%, transparent 60%),
+    radial-gradient(900px 600px at 110% 10%, #0d4a6b 0%, transparent 55%),
+    radial-gradient(800px 500px at 50% 120%, #4a1450 0%, transparent 60%),
+    var(--bg);
+  min-height:100vh;display:flex;flex-direction:column;overflow-x:hidden;
+}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.07;
+  background-image:linear-gradient(#fff 1px,transparent 1px),linear-gradient(90deg,#fff 1px,transparent 1px);
+  background-size:42px 42px;}
+button{font-family:inherit;cursor:pointer}
+.screen{display:none;flex-direction:column;flex:1;position:relative;z-index:1}
+.screen.active{display:flex}
+h1,h2,h3,.f{font-family:'Fredoka',sans-serif}
+
+/* ---------- SETUP ---------- */
+#setup{align-items:center;justify-content:center;padding:28px 16px}
+.logo{font-family:'Fredoka';font-weight:700;font-size:clamp(40px,7vw,86px);line-height:.95;text-align:center;margin:0;
+  background:linear-gradient(90deg,#ffd23f,#ff6b9d,#7c5cff,#2fd2ff);-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 6px 24px rgba(124,92,255,.45));}
+.sub{color:var(--muted);text-align:center;margin:10px 0 26px;font-weight:700;font-size:clamp(14px,1.6vw,18px)}
+.setup-card{width:min(980px,100%);display:grid;grid-template-columns:1.1fr 1fr;gap:22px}
+.box{background:rgba(20,26,58,.85);border:2px solid var(--line);border-radius:24px;padding:22px;backdrop-filter:blur(6px)}
+.box h3{margin:0 0 14px;font-size:22px;display:flex;align-items:center;gap:10px}
+.counter{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.counter button{width:42px;height:42px;border-radius:12px;border:2px solid var(--line);background:var(--panel2);color:#fff;font-size:24px;font-weight:900}
+.counter span{font-family:'Fredoka';font-size:28px;min-width:30px;text-align:center}
+.trow{display:flex;align-items:center;gap:10px;margin:8px 0}
+.dot{width:20px;height:20px;border-radius:50%;flex:none;box-shadow:0 0 12px currentColor}
+.trow input{flex:1;padding:12px 14px;border-radius:12px;border:2px solid var(--line);background:#0f1433;color:#fff;font:700 17px 'Nunito'}
+.trow input:focus{outline:none;border-color:var(--gold)}
+.field{margin-bottom:20px}
+.field label{display:flex;justify-content:space-between;font-weight:800;margin-bottom:8px}
+.field label b{font-family:'Fredoka';color:var(--gold);font-size:22px}
+input[type=range]{width:100%;accent-color:var(--gold)}
+.chips{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.chip{padding:6px 12px;border-radius:999px;border:2px solid var(--line);background:var(--panel2);color:#fff;font-weight:800}
+.chip.on{background:var(--gold);color:#1a1300;border-color:var(--gold)}
+.note{color:var(--muted);font-size:13px;margin-top:6px}
+.rules{margin:0;padding-left:18px;color:#d6dcff;line-height:1.55;font-size:15px}
+.rules b{color:var(--gold)}
+.big-btn{margin-top:24px;width:min(980px,100%);padding:20px;border:none;border-radius:20px;
+  background:linear-gradient(90deg,#ff6b9d,#ffb347,#ffd23f);color:#2a1200;font:700 30px 'Fredoka';
+  box-shadow:0 10px 0 #b3541e,0 18px 40px rgba(255,107,157,.4);transition:transform .1s}
+.big-btn:active{transform:translateY(6px);box-shadow:0 4px 0 #b3541e}
+
+/* ---------- GAME ---------- */
+#game{padding:14px 18px 6px;gap:12px}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-family:'Fredoka';font-size:24px;font-weight:700}
+.progress{font-family:'Fredoka';font-size:20px;background:var(--panel);border:2px solid var(--line);padding:6px 16px;border-radius:999px}
+.tools{display:flex;gap:8px}
+.tbtn{background:var(--panel);border:2px solid var(--line);color:#fff;border-radius:12px;padding:8px 12px;font-weight:800;font-size:16px}
+.tbtn:hover{border-color:var(--gold)}
+.scoreboard{display:flex;gap:12px;flex-wrap:wrap}
+.team{flex:1;min-width:150px;background:var(--panel);border:3px solid var(--line);border-radius:18px;padding:10px 14px 8px;position:relative;transition:all .3s}
+.team::before{content:"";position:absolute;left:0;top:0;bottom:0;width:8px;border-radius:14px 0 0 14px;background:var(--tc)}
+.team.turn{border-color:var(--tc);box-shadow:0 0 0 4px var(--tcg),0 0 34px var(--tcg);transform:translateY(-3px)}
+.team.turn::after{content:"TURNO";position:absolute;top:-11px;right:12px;background:var(--tc);color:#0a0f24;font:700 12px 'Fredoka';padding:2px 10px;border-radius:999px;letter-spacing:1px}
+.tname{font-weight:900;font-size:16px;padding-left:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tscore{font-family:'Fredoka';font-size:38px;line-height:1;padding-left:6px}
+.tscore small{font-size:15px;color:var(--muted);margin-left:4px}
+.tscore.bump{animation:bump .6s}
+@keyframes bump{30%{transform:scale(1.35);color:var(--gold)}}
+.tmeta{display:flex;justify-content:space-between;align-items:center;padding-left:6px;margin-top:4px}
+.wilds span{font-size:18px;margin-right:3px}
+.wilds span.used{filter:grayscale(1);opacity:.25}
+.adj button{width:26px;height:26px;border-radius:8px;border:1px solid var(--line);background:#0f1433;color:var(--muted);font-weight:900;line-height:1;padding:0}
+.adj button:hover{color:#fff;border-color:var(--gold)}
+.arena{flex:1;display:grid;grid-template-columns:auto minmax(260px,380px);gap:28px;align-items:center;justify-content:center}
+.wheel-wrap{position:relative;width:min(60vh,88vw,640px);aspect-ratio:1}
+#wheel{width:100%;height:100%;display:block;filter:drop-shadow(0 20px 40px rgba(0,0,0,.5))}
+.pointer{position:absolute;top:-10px;left:50%;transform:translateX(-50%);width:0;height:0;z-index:3;
+  border-left:26px solid transparent;border-right:26px solid transparent;border-top:50px solid var(--gold);
+  filter:drop-shadow(0 4px 6px rgba(0,0,0,.6));transform-origin:50% 0}
+.pointer.wiggle{animation:wig .12s}
+@keyframes wig{50%{transform:translateX(-50%) rotate(-14deg)}}
+.spin-btn{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:25%;aspect-ratio:1;border-radius:50%;z-index:2;
+  border:6px solid #fff;background:radial-gradient(circle at 35% 30%,#fff3b0,#ffd23f 40%,#f59e0b);
+  color:#3a1d00;font:700 clamp(16px,2.4vw,30px) 'Fredoka';box-shadow:0 8px 0 #b45309,0 0 40px rgba(255,210,63,.6);transition:transform .15s}
+.spin-btn:hover{transform:translate(-50%,-50%) scale(1.06)}
+.spin-btn:disabled{filter:saturate(.4) brightness(.8);cursor:default}
+.side{display:flex;flex-direction:column;gap:14px}
+.turn-card{background:var(--panel);border:3px solid var(--tc,#444);border-radius:22px;padding:18px;text-align:center;box-shadow:0 0 30px var(--tcg,transparent)}
+.turn-card .lbl{color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:2px;font-size:13px}
+.turn-card .nm{font-family:'Fredoka';font-size:clamp(26px,3vw,40px);color:var(--tc);line-height:1.1;margin-top:4px}
+.result{min-height:64px;border-radius:18px;display:flex;align-items:center;justify-content:center;font:700 28px 'Fredoka';text-align:center}
+.result.show{animation:pop .5s;background:var(--rc);color:#0a0f24;box-shadow:0 0 40px var(--rc)}
+.legend{background:var(--panel);border:2px solid var(--line);border-radius:18px;padding:12px 14px}
+.legend div{display:flex;align-items:center;gap:10px;padding:4px 0;font-weight:800}
+.legend i{width:14px;height:14px;border-radius:4px;flex:none}
+.legend .n{margin-left:auto;color:var(--muted);font-size:14px}
+.legend h4{margin:8px 0 2px;font:700 15px 'Fredoka';color:#fff;display:flex;justify-content:space-between;border-bottom:1px solid var(--line);padding-bottom:4px}
+.legend h4:first-child{margin-top:0}
+.legend h4 span{color:var(--gold);font-size:13px}
+.legend .empty{opacity:.35;text-decoration:line-through}
+.hint{color:var(--muted);font-size:13px;margin:0;text-align:center}
+
+/* ---------- MODALS ---------- */
+.overlay{position:fixed;inset:0;background:rgba(4,6,20,.78);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
+.overlay.open{display:flex}
+.qcard{width:min(1040px,100%);max-height:96vh;overflow:auto;background:linear-gradient(160deg,#1a2152,#11163a);border:4px solid var(--cat);
+  border-radius:30px;padding:24px 28px;box-shadow:0 0 80px color-mix(in srgb,var(--cat) 45%,transparent);animation:pop .45s cubic-bezier(.2,1.5,.4,1)}
+@keyframes pop{0%{transform:scale(.6);opacity:0}100%{transform:scale(1);opacity:1}}
+.qhead{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.catchip{background:var(--cat);color:#0a0f24;font:700 18px 'Fredoka';padding:6px 16px;border-radius:999px}
+.qnum{color:var(--muted);font-weight:800}
+.answering{margin-left:auto;display:flex;align-items:center;gap:10px;background:#0f1433;border:3px solid var(--tc);padding:6px 16px;border-radius:999px;font-weight:900;font-size:18px}
+.answering.blink{animation:pop .5s}
+.answering b{color:var(--tc);font-family:'Fredoka';font-size:22px}
+.timer{width:86px;height:86px;position:relative;cursor:pointer;flex:none}
+.timer svg{width:100%;height:100%;transform:rotate(-90deg)}
+.timer circle{fill:none;stroke-width:9}
+.timer .bgc{stroke:#2b3470}
+.timer .fg{stroke:var(--gold);stroke-linecap:round;transition:stroke-dashoffset 1s linear,stroke .3s}
+.timer .num{position:absolute;inset:0;display:grid;place-items:center;font:700 30px 'Fredoka'}
+.timer.warn .fg{stroke:var(--bad)} .timer.warn .num{color:#ff8a8a;animation:beat 1s infinite}
+.timer.paused .num{font-size:22px}
+@keyframes beat{50%{transform:scale(1.18)}}
+.qtext{font-family:'Fredoka';font-weight:600;font-size:clamp(24px,3.2vw,40px);line-height:1.2;margin:20px 0 22px}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.opt{display:flex;gap:14px;align-items:center;padding:16px 18px;border-radius:18px;background:#1f2860;border:3px solid #2f3a80;color:#fff;
+  font-size:clamp(17px,2vw,24px);font-weight:800;text-align:left;transition:transform .12s,background .2s,opacity .3s}
+.opt:hover:not(:disabled){transform:translateY(-2px);border-color:var(--cat)}
+.opt .let{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;background:var(--cat);color:#0a0f24;font:700 24px 'Fredoka';flex:none}
+.opt:disabled{cursor:default}
+.opt.correct{background:#15803d;border-color:#4ade80;animation:pulse .8s 2}
+.opt.reveal{background:#15803d;border-color:#4ade80}
+.opt.wrong{background:#991b1b;border-color:#f87171;animation:shake .45s}
+.opt.removed{opacity:.12;filter:grayscale(1)}
+@keyframes pulse{50%{transform:scale(1.04);box-shadow:0 0 40px #4ade80}}
+@keyframes shake{20%,60%{transform:translateX(-10px)}40%,80%{transform:translateX(10px)}}
+.wildrow{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;align-items:center}
+.wildrow .lbl{color:var(--muted);font-weight:800;margin-right:4px}
+.wbtn{display:flex;align-items:center;gap:8px;padding:10px 16px;border-radius:14px;border:2px solid #4b55a8;background:#262f6e;color:#fff;font-weight:900;font-size:16px}
+.wbtn span{font-size:22px}
+.wbtn:hover:not(:disabled){background:#343e8c;border-color:var(--gold)}
+.wbtn:disabled{opacity:.3;cursor:not-allowed;text-decoration:line-through}
+.infos{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.info{padding:12px 16px;border-radius:14px;background:#0f1433;border-left:6px solid var(--gold);font-size:18px;font-weight:700;animation:pop .35s}
+.info small{display:block;color:var(--muted);font-weight:700;margin-top:4px;font-size:14px}
+.info .conf{background:#2b3470;padding:2px 10px;border-radius:999px;font-size:14px;margin-left:6px}
+.dots::after{content:"";animation:dots 1.2s infinite}
+@keyframes dots{0%{content:""}25%{content:"."}50%{content:".."}75%{content:"..."}}
+.feedback{margin-top:16px;font:700 clamp(20px,2.4vw,28px) 'Fredoka'}
+.feedback .ok{color:#4ade80} .feedback .bad{color:#ff8a8a}
+.feedback small{display:block;font:700 18px 'Nunito';color:#d6dcff;margin-top:4px}
+.actions{display:flex;gap:12px;margin-top:14px;flex-wrap:wrap}
+.abtn{padding:14px 24px;border-radius:16px;border:none;font:700 22px 'Fredoka'}
+.abtn.primary{background:var(--gold);color:#2a1a00;box-shadow:0 6px 0 #b48a00}
+.abtn.primary:active{transform:translateY(4px);box-shadow:0 2px 0 #b48a00}
+.abtn.ghost{background:transparent;color:#fff;border:2px solid #4b55a8}
+.confirm{background:var(--panel);border:3px solid var(--gold);border-radius:24px;padding:26px;max-width:460px;text-align:center;animation:pop .35s}
+.confirm h3{margin:0 0 18px;font-size:26px}
+.confirm .actions{justify-content:center}
+
+/* ---------- PODIUM ---------- */
+#podium{align-items:center;padding:20px 16px;overflow:hidden}
+.ptitle{font-family:'Fredoka';font-weight:700;font-size:clamp(30px,5vw,62px);text-align:center;margin:8px 0 0;min-height:1.3em;
+  background:linear-gradient(90deg,#fff,#ffd23f,#fff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.ptitle.zoom{animation:pop .6s cubic-bezier(.2,1.6,.4,1)}
+.stage{position:relative;display:flex;align-items:flex-end;justify-content:center;gap:clamp(8px,2vw,22px);margin-top:20px;min-height:470px;width:min(900px,100%)}
+.stage::before{content:"";position:absolute;left:50%;bottom:0;width:700px;height:700px;transform:translateX(-50%);
+  background:conic-gradient(from 0deg,transparent 0 10deg,rgba(255,210,63,.10) 10deg 20deg,transparent 20deg 40deg,rgba(255,210,63,.10) 40deg 50deg,transparent 50deg 70deg,rgba(255,210,63,.10) 70deg 80deg,transparent 80deg 100deg,rgba(255,210,63,.10) 100deg 110deg,transparent 110deg 130deg,rgba(255,210,63,.10) 130deg 140deg,transparent 140deg 160deg,rgba(255,210,63,.1) 160deg 170deg,transparent 170deg);
+  border-radius:50%;opacity:0;transition:opacity 1s;pointer-events:none}
+.stage.glory::before{opacity:1;animation:spinr 14s linear infinite}
+@keyframes spinr{to{transform:translateX(-50%) rotate(360deg)}}
+.stage.suspense .ped:not(.show){animation:tremble .15s infinite}
+@keyframes tremble{25%{transform:translateX(-2px)}75%{transform:translateX(2px)}}
+.ped{width:clamp(110px,24vw,240px);display:flex;flex-direction:column;align-items:center;position:relative;z-index:1}
+.ped .info2{display:flex;flex-direction:column;align-items:center;opacity:0;transform:translateY(40px) scale(.4);transition:all .9s cubic-bezier(.2,1.5,.4,1);margin-bottom:10px;text-align:center}
+.ped.show .info2{opacity:1;transform:none}
+.crown{font-size:46px;margin-bottom:-12px;animation:float 2s ease-in-out infinite}
+@keyframes float{50%{transform:translateY(-8px) rotate(-6deg)}}
+.avatar{width:clamp(64px,9vw,100px);aspect-ratio:1;border-radius:50%;display:grid;place-items:center;font:700 clamp(28px,4vw,46px) 'Fredoka';color:#0a0f24;border:5px solid #fff;box-shadow:0 0 30px rgba(255,255,255,.4)}
+.pname{font-family:'Fredoka';font-weight:700;font-size:clamp(18px,2.4vw,30px);margin-top:8px;line-height:1.1}
+.pscore{color:#d6dcff;font-weight:800;font-size:clamp(13px,1.5vw,17px)}
+.medal{font-size:clamp(34px,4vw,52px)}
+.block{width:100%;border-radius:18px 18px 4px 4px;display:flex;justify-content:center;padding-top:12px;
+  font:700 clamp(48px,7vw,84px) 'Fredoka';color:rgba(255,255,255,.9);text-shadow:0 4px 0 rgba(0,0,0,.25);
+  transform-origin:bottom;animation:rise 1s cubic-bezier(.2,1.2,.4,1) both;box-shadow:inset 0 -20px 40px rgba(0,0,0,.25),0 10px 40px rgba(0,0,0,.4)}
+@keyframes rise{from{transform:scaleY(0)}}
+.p1 .block{height:260px;background:linear-gradient(180deg,#ffe27a,#f5a623)}
+.p2 .block{height:190px;background:linear-gradient(180deg,#e8edf5,#9aa7bd)}
+.p3 .block{height:140px;background:linear-gradient(180deg,#f0b27a,#b8692d)}
+.ped.show.p1 .avatar{box-shadow:0 0 60px #ffd23f,0 0 120px rgba(255,210,63,.6)}
+.winner{font-family:'Fredoka';font-weight:700;font-size:clamp(26px,4vw,48px);text-align:center;margin-top:18px;opacity:0;transform:scale(.3);transition:all .8s cubic-bezier(.2,1.6,.4,1);color:var(--gold);text-shadow:0 0 30px rgba(255,210,63,.6)}
+.winner.show{opacity:1;transform:none}
+.rest{margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;justify-content:center;opacity:0;transition:opacity .8s}
+.rest.show,.pactions.show{opacity:1}
+.rest div{background:var(--panel);border:2px solid var(--line);padding:8px 16px;border-radius:999px;font-weight:800}
+.pactions{display:flex;gap:12px;margin-top:20px;opacity:0;transition:opacity .8s;flex-wrap:wrap;justify-content:center}
+.flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:60}
+.flash.go{animation:flash .9s}
+@keyframes flash{10%{opacity:.85}100%{opacity:0}}
+.dim{position:fixed;inset:0;background:radial-gradient(circle at 50% 60%,transparent 0,rgba(0,0,0,.75) 55%);opacity:0;pointer-events:none;transition:opacity .8s;z-index:0}
+.dim.on{opacity:1}
+
+#confetti{position:fixed;inset:0;pointer-events:none;z-index:70}
+footer{position:relative;z-index:1;text-align:center;padding:10px;color:var(--muted);font-weight:800;letter-spacing:.5px;border-top:1px solid rgba(255,255,255,.06);font-size:15px}
+footer b{color:#fff;font-family:'Fredoka';font-weight:600}
+
+@media (max-width:860px){
+  .setup-card{grid-template-columns:1fr}
+  .arena{grid-template-columns:1fr;justify-items:center}
+  .side{width:100%}
+  .opts{grid-template-columns:1fr}
+  .answering{margin-left:0}
+  .stage{min-height:400px}
+  .p1 .block{height:200px}.p2 .block{height:150px}.p3 .block{height:110px}
+}
+</style>
+</head>
+<body>
+
+<!-- ================= SETUP ================= -->
+<section id="setup" class="screen active">
+  <h1 class="logo">RULETA<br>DEL SABER</h1>
+  <p class="sub">⚛️ Física: Conceptos y Leyes de Newton &nbsp;·&nbsp; 💻 Ciencias de la Computación: Informática, Redes, Hardware, Software y Robótica</p>
+  <div class="setup-card">
+    <div class="box">
+      <h3>👥 Equipos</h3>
+      <div class="counter">
+        <button id="tMinus" aria-label="Menos equipos">−</button>
+        <span id="tCount">4</span>
+        <button id="tPlus" aria-label="Más equipos">+</button>
+        <span class="note" style="margin:0 0 0 6px">de 2 a 6 equipos</span>
+      </div>
+      <div id="teamInputs"></div>
+    </div>
+    <div class="box">
+      <h3>⚙️ Configuración</h3>
+      <div class="field">
+        <label>Segundos para responder <b id="secsVal">30 s</b></label>
+        <input type="range" id="secs" min="10" max="120" step="5" value="30">
+        <div class="chips" id="secChips">
+          <button class="chip" data-s="15">15 s</button><button class="chip on" data-s="30">30 s</button>
+          <button class="chip" data-s="45">45 s</button><button class="chip" data-s="60">60 s</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Cantidad de preguntas <b id="qVal">20</b></label>
+        <input type="range" id="qmax" min="4" max="50" step="1" value="20">
+        <p class="note" id="qNote"></p>
+      </div>
+      <h3 style="font-size:18px;margin-top:6px">📜 Reglas</h3>
+      <ul class="rules">
+        <li>Cada respuesta correcta suma <b>10 puntos</b>.</li>
+        <li>Si un equipo falla, el profe puede <b>pasar la pregunta</b> al siguiente.</li>
+        <li>Cada equipo tiene <b>3 comodines</b> para toda la partida: 🤖 IA, 🧑‍🏫 Pista del profe y ✂️ 50/50.</li>
+        <li>Las preguntas salen <b>mitad Física y mitad Computación</b>.</li>
+        <li>Gana el equipo con <b>más respuestas correctas</b>.</li>
+      </ul>
+    </div>
+  </div>
+  <button class="big-btn" id="startBtn">🎡 ¡A JUGAR!</button>
+</section>
+
+<!-- ================= GAME ================= -->
+<section id="game" class="screen">
+  <div class="topbar">
+    <div class="brand">🎡 Ruleta del Saber</div>
+    <div class="progress" id="progress">Pregunta 1 de 20</div>
+    <div class="tools">
+      <button class="tbtn" id="btnMute" title="Sonido">🔊</button>
+      <button class="tbtn" id="btnFull" title="Pantalla completa">⛶</button>
+      <button class="tbtn" id="btnEnd">🏁 Terminar</button>
+    </div>
+  </div>
+  <div class="scoreboard" id="scoreboard"></div>
+  <div class="arena">
+    <div class="wheel-wrap">
+      <div class="pointer" id="pointer"></div>
+      <canvas id="wheel" width="700" height="700"></canvas>
+      <button class="spin-btn" id="spinBtn">GIRAR</button>
+    </div>
+    <aside class="side">
+      <div class="turn-card" id="turnCard"></div>
+      <div class="result" id="result"></div>
+      <div class="legend" id="legend"></div>
+      <p class="hint">Barra espaciadora = girar · Teclas A B C D = responder · Tocá el reloj para pausar</p>
+    </aside>
+  </div>
+</section>
+
+<!-- ================= PODIUM ================= -->
+<section id="podium" class="screen">
+  <div class="dim" id="dim"></div>
+  <h2 class="ptitle" id="ptitle"></h2>
+  <div class="stage" id="stage"></div>
+  <div class="winner" id="winner"></div>
+  <div class="rest" id="rest"></div>
+  <div class="pactions" id="pactions">
+    <button class="abtn primary" id="againBtn">🔁 Revancha (mismos equipos)</button>
+    <button class="abtn ghost" id="newBtn">🏠 Menú principal</button>
+  </div>
+</section>
+
+<!-- Question modal -->
+<div class="overlay" id="qModal">
+  <div class="qcard" id="qcard">
+    <div class="qhead">
+      <span class="catchip" id="qcat"></span>
+      <span class="qnum" id="qnum"></span>
+      <div class="answering" id="answering"></div>
+      <div class="timer" id="timer" title="Tocá para pausar">
+        <svg viewBox="0 0 100 100"><circle class="bgc" cx="50" cy="50" r="44"/><circle class="fg" id="tfg" cx="50" cy="50" r="44"/></svg>
+        <div class="num" id="tnum">30</div>
+      </div>
+    </div>
+    <div class="qtext" id="qtext"></div>
+    <div class="opts" id="opts"></div>
+    <div class="wildrow" id="wildrow"></div>
+    <div class="infos" id="infos"></div>
+    <div class="feedback" id="feedback"></div>
+    <div class="actions" id="actions"></div>
+  </div>
+</div>
+
+<!-- Confirm modal -->
+<div class="overlay" id="cModal">
+  <div class="confirm">
+    <h3>¿Terminar la partida y ver el podio?</h3>
+    <div class="actions">
+      <button class="abtn primary" id="cYes">🏆 Ver podio</button>
+      <button class="abtn ghost" id="cNo">Seguir jugando</button>
+    </div>
+  </div>
+</div>
+
+<div class="flash" id="flash"></div>
+<canvas id="confetti"></canvas>
+
+<footer>Prof. <b>Bruno Silva</b></footer>
+
+<script>
+/* ===================== DATOS ===================== */
+const SUBJ = {
+  fis:{name:'Física', icon:'⚛️'},
+  cc:{name:'Ciencias de la Computación', icon:'💻'}
+};
+const CATS = {
+  fconceptos:{subj:'fis', name:'Conceptos de Física', short:'Física', icon:'🧲', color:'#ff7a45'},
+  newton:    {subj:'fis', name:'Leyes de Newton', short:'Newton', icon:'🍎', color:'#facc15'},
+  iconceptos:{subj:'cc', name:'Conceptos de Informática', short:'Informática', icon:'🧠', color:'#a78bfa'},
+  redes:     {subj:'cc', name:'Redes', short:'Redes', icon:'🌐', color:'#22d3ee'},
+  hardware:  {subj:'cc', name:'Hardware', short:'Hardware', icon:'🖥️', color:'#60a5fa'},
+  software:  {subj:'cc', name:'Software', short:'Software', icon:'💾', color:'#4ade80'},
+  robotica:  {subj:'cc', name:'Robótica', short:'Robótica', icon:'🤖', color:'#f472b6'}
+};
+// o[0] es siempre la respuesta correcta (las opciones se mezclan al mostrarse)
+const Q = [
+ // ===== FÍSICA (25) =====
+ // ---- Conceptos de Física (12)
+ {c:'fconceptos',q:'¿Qué es una fuerza?',o:['Una interacción que puede cambiar el movimiento o la forma de un cuerpo','La cantidad de materia de un cuerpo','La distancia que recorre un cuerpo','El tiempo que tarda un cuerpo en caer'],p:'Un empujón o un tirón.'},
+ {c:'fconceptos',q:'¿Qué indica la masa de un cuerpo?',o:['La cantidad de materia que tiene','La fuerza con que lo atrae la Tierra','Qué tan rápido se mueve','Cuánto espacio ocupa'],p:'No cambia aunque viajes a la Luna.'},
+ {c:'fconceptos',q:'¿Qué es el peso de un cuerpo?',o:['La fuerza con que la Tierra (u otro astro) lo atrae','La cantidad de materia que tiene','Su velocidad al caer','Su volumen'],p:'En la Luna sería menor que en la Tierra.'},
+ {c:'fconceptos',q:'¿En qué unidad se mide la masa en el Sistema Internacional?',o:['Kilogramo (kg)','Newton (N)','Litro (L)','Metro (m)'],p:'Es la unidad que usás en la balanza del almacén.'},
+ {c:'fconceptos',q:'¿Qué es la velocidad?',o:['Qué tan rápido cambia de posición un cuerpo, en una dirección','La fuerza que se aplica a un cuerpo','La masa multiplicada por la gravedad','El tiempo total de un viaje'],p:'Se mide, por ejemplo, en km/h.'},
+ {c:'fconceptos',q:'¿Qué es la aceleración?',o:['El cambio de la velocidad en el tiempo','La distancia total recorrida','La masa del cuerpo','La fuerza del rozamiento'],p:'Cuando un auto "pica" al arrancar, la tiene.'},
+ {c:'fconceptos',q:'¿Qué instrumento se usa para medir fuerzas?',o:['El dinamómetro','El termómetro','El cronómetro','El barómetro'],p:'Tiene un resorte adentro.'},
+ {c:'fconceptos',q:'¿Qué fuerza se opone al deslizamiento entre dos superficies en contacto?',o:['El rozamiento (fricción)','El peso','La fuerza magnética','La fuerza eléctrica'],p:'Es la que hace que te cueste arrastrar un mueble.'},
+ {c:'fconceptos',q:'En la Tierra, la aceleración de la gravedad vale aproximadamente...',o:['9,8 m/s²','98 m/s²','1 m/s²','0,98 m/s²'],p:'Es un poco menos de 10.'},
+ {c:'fconceptos',q:'Un astronauta viaja a la Luna. ¿Qué pasa con su MASA?',o:['Sigue siendo la misma','Se reduce a la mitad','Se vuelve cero','Aumenta'],p:'La masa es la cantidad de materia.'},
+ {c:'fconceptos',q:'¿Cuándo está en equilibrio un cuerpo?',o:['Cuando la suma de las fuerzas que actúan sobre él es cero','Cuando tiene mucha masa','Cuando solo actúa su peso','Cuando se mueve cada vez más rápido'],p:'Las fuerzas "se anulan".'},
+ {c:'fconceptos',q:'¿Cuál de estas magnitudes es vectorial (tiene dirección y sentido)?',o:['La fuerza','La masa','El tiempo','La temperatura'],p:'Se dibuja con una flecha.'},
+ // ---- Leyes de Newton (13)
+ {c:'newton',q:'¿Quién formuló las tres leyes del movimiento?',o:['Isaac Newton','Albert Einstein','Galileo Galilei','Marie Curie'],p:'Cuenta la leyenda que le cayó una manzana.'},
+ {c:'newton',q:'¿Qué dice la 1ª ley de Newton (ley de inercia)?',o:['Un cuerpo sigue en reposo o en movimiento rectilíneo uniforme si no actúa una fuerza neta sobre él','La fuerza es igual a la masa por la aceleración','A toda acción le corresponde una reacción','Todos los cuerpos caen a la misma velocidad'],p:'Los objetos "no quieren" cambiar lo que están haciendo.'},
+ {c:'newton',q:'¿Con qué fórmula se resume la 2ª ley de Newton?',o:['F = m · a','E = m · c²','V = I · R','d = v / t'],p:'Fuerza, masa y aceleración.'},
+ {c:'newton',q:'¿Con qué otro nombre se conoce la 2ª ley de Newton?',o:['Principio fundamental de la dinámica','Principio de inercia','Principio de acción y reacción','Ley de gravitación universal'],p:'Es la ley "fundamental" del movimiento con fuerzas.'},
+ {c:'newton',q:'¿Qué dice la 3ª ley de Newton?',o:['A toda acción le corresponde una reacción de igual magnitud y sentido opuesto','Los cuerpos tienden a quedarse quietos','La fuerza depende del color del objeto','La aceleración siempre es cero'],p:'Acción y...'},
+ {c:'newton',q:'Un ómnibus frena de golpe y los pasajeros se van hacia adelante. ¿Qué ley lo explica?',o:['La 1ª ley (inercia)','La 2ª ley','La 3ª ley','Ninguna'],p:'El cuerpo quiere seguir moviéndose.'},
+ {c:'newton',q:'Al sacudir una alfombra, el polvo se desprende porque tiende a quedarse en su lugar. ¿Qué ley es?',o:['La 1ª ley (inercia)','La 2ª ley','La 3ª ley','Ninguna'],p:'Es la misma ley que la del ómnibus que frena.'},
+ {c:'newton',q:'Un cohete sube expulsando gases hacia abajo. ¿Qué ley lo explica?',o:['La 3ª ley (acción y reacción)','La 1ª ley','La 2ª ley','Ninguna'],p:'Empuja hacia abajo y sale hacia arriba.'},
+ {c:'newton',q:'Al patear una pelota, el pie también siente una fuerza. ¿Qué ley lo explica?',o:['La 3ª ley (acción y reacción)','La 1ª ley','La 2ª ley','Ninguna'],p:'La pelota "le devuelve" la fuerza al pie.'},
+ {c:'newton',q:'Empujás con la MISMA fuerza un carrito vacío y uno lleno. ¿Cuál acelera más?',o:['El vacío','El lleno','Los dos igual','Ninguno se mueve'],p:'Menos masa, más aceleración.'},
+ {c:'newton',q:'Se aplica una fuerza neta de 10 N a un cuerpo de 2 kg. ¿Cuál es su aceleración?',o:['5 m/s²','20 m/s²','12 m/s²','8 m/s²'],p:'a = F / m'},
+ {c:'newton',q:'Para que un cuerpo acelere el DOBLE, sin cambiar su masa, la fuerza neta debe ser...',o:['El doble','La mitad','La misma','Cero'],p:'Fuerza y aceleración son proporcionales.'},
+ {c:'newton',q:'¿En qué unidad se mide la fuerza en el Sistema Internacional?',o:['Newton (N)','Kilogramo (kg)','Metro (m)','Segundo (s)'],p:'Tiene el nombre de un científico famoso.'},
+ // ===== CIENCIAS DE LA COMPUTACIÓN (25) =====
+ // ---- Conceptos de Informática (5)
+ {c:'iconceptos',q:'¿Qué es un algoritmo?',o:['Una secuencia ordenada de pasos para resolver un problema','Un tipo de virus informático','Una pieza de hardware','Un modelo de celular'],p:'Lo usás hasta para seguir una receta de cocina.'},
+ {c:'iconceptos',q:'¿Cuántos bits forman un byte?',o:['8','4','16','10'],p:'Es el doble de 4.'},
+ {c:'iconceptos',q:'¿Cómo se escribe el número 5 en binario?',o:['101','110','111','100'],p:'5 = 4 + 1.'},
+ {c:'iconceptos',q:'¿Qué estructura de programación permite repetir instrucciones varias veces?',o:['Un bucle (ciclo)','Un condicional','Un comentario','Una variable'],p:'En Scratch es el bloque "repetir".'},
+ {c:'iconceptos',q:'¿Qué es un "bug" en informática?',o:['Un error en un programa','Un antivirus','Un tipo de memoria','Un periférico'],p:'En inglés significa "bicho".'},
+ // ---- Redes (5)
+ {c:'redes',q:'¿Qué significa "WWW"?',o:['World Wide Web','World Wide Wireless','Web World Wide','Wide Wireless Web'],p:'"Web" significa telaraña.'},
+ {c:'redes',q:'¿Qué es una dirección IP?',o:['Un número que identifica a un dispositivo en una red','La contraseña del WiFi','Un tipo de cable','Un navegador web'],p:'Es como el "número de puerta" de tu equipo en la red.'},
+ {c:'redes',q:'¿Qué dispositivo conecta la red de tu casa con Internet y reparte la conexión?',o:['El router','El monitor','La impresora','El teclado'],p:'Suele tener lucecitas y antenas.'},
+ {c:'redes',q:'¿Qué protocolo indica que una página web usa conexión segura (el candadito)?',o:['HTTPS','HTTP','FTP','USB'],p:'Tiene una "S" de seguro al final.'},
+ {c:'redes',q:'¿Qué es el "phishing"?',o:['Un engaño para robar datos haciéndose pasar por alguien confiable','Un tipo de cable','Un juego en red','Una forma de comprimir archivos'],p:'Suena como "pescar" en inglés.'},
+ // ---- Hardware (5)
+ {c:'hardware',q:'¿Qué componente se considera el "cerebro" de la computadora?',o:['El procesador (CPU)','El monitor','El mouse','La fuente'],p:'Su sigla en inglés tiene 3 letras.'},
+ {c:'hardware',q:'¿Qué memoria se borra cuando se apaga la computadora?',o:['La RAM','El disco duro','El SSD','El pendrive'],p:'Es memoria volátil.'},
+ {c:'hardware',q:'¿Cuál de estos es un periférico de ENTRADA?',o:['El teclado','El monitor','El parlante','La impresora'],p:'Sirve para darle información a la computadora.'},
+ {c:'hardware',q:'¿Cuál de estos es un periférico de SALIDA?',o:['El monitor','El teclado','El mouse','El micrófono'],p:'Te muestra información a vos.'},
+ {c:'hardware',q:'¿Qué es más grande: 1 GB o 1 MB?',o:['1 GB','1 MB','Son iguales','Depende del archivo'],p:'Giga va después de Mega.'},
+ // ---- Software (5)
+ {c:'software',q:'¿Cuál de estos es un sistema operativo?',o:['Linux','Word','Scratch','Photoshop'],p:'Su mascota es un pingüino.'},
+ {c:'software',q:'¿Qué es el software libre?',o:['Software que se puede usar, estudiar, modificar y compartir','Software que siempre es de mala calidad','Software copiado sin permiso','Un programa que no necesita computadora'],p:'"Libre" como en libertad, no solo como en gratis.'},
+ {c:'software',q:'¿Qué es un antivirus?',o:['Un programa que detecta y elimina software malicioso','Un componente físico de la PC','Un tipo de virus','Un navegador web'],p:'Su nombre lo dice todo.'},
+ {c:'software',q:'En informática, ¿qué es "la nube"?',o:['Servidores en Internet donde se guardan datos y servicios','Una parte del monitor','El calor que larga la PC','Un tipo de memoria RAM'],p:'Google Drive es un ejemplo.'},
+ {c:'software',q:'¿Qué hace el atajo Ctrl + Z?',o:['Deshace la última acción','Pega','Guarda el archivo','Cierra el programa'],p:'Te salva cuando te equivocás.'},
+ // ---- Robótica (5)
+ {c:'robotica',q:'¿Qué es un sensor en un robot?',o:['Un dispositivo que capta información del entorno','Un motor','Una batería','Una pantalla'],p:'Funciona como los sentidos del robot.'},
+ {c:'robotica',q:'¿Qué es un actuador?',o:['Un componente que produce movimiento o una acción, como un motor','Un sensor de luz','Un cable','Un programa'],p:'Es el que "actúa".'},
+ {c:'robotica',q:'¿Qué sensor mide la distancia usando sonido?',o:['El sensor ultrasónico','El sensor de luz','El sensor de temperatura','El sensor táctil'],p:'Como los murciélagos.'},
+ {c:'robotica',q:'¿Qué es la micro:bit?',o:['Una placa pequeña y programable para aprender','Un tipo de virus','Un robot humanoide','Un videojuego'],p:'Tiene una matriz de 25 LEDs.'},
+ {c:'robotica',q:'¿Qué tipo de motor permite girar a un ángulo preciso, por ejemplo 90°?',o:['El servomotor','Un motor a combustión','Un ventilador','Un parlante'],p:'Su nombre empieza con "servo".'}
+];
+const TEAM_COLORS = ['#ff5d8f','#4dabf7','#51cf66','#ffd43b','#b197fc','#ff922b'];
+const DEFAULT_NAMES = ['Equipo Bits','Equipo Bytes','Equipo Robots','Equipo Newton','Equipo Píxel','Equipo Router'];
+const WILD = {
+  ia:{icon:'🤖',label:'Consultar a la IA'},
+  pista:{icon:'🧑‍🏫',label:'Pista del profe'},
+  mitad:{icon:'✂️',label:'50 / 50'}
+};
+
+/* ===================== UTIL ===================== */
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const shuffle = a => { for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; };
+const pick = a => a[Math.floor(Math.random()*a.length)];
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const TAU = Math.PI*2;
+const norm = a => ((a % TAU) + TAU) % TAU;
+const rgba = (hex,a) => { const n=parseInt(hex.slice(1),16); return `rgba(${n>>16},${(n>>8)&255},${n&255},${a})`; };
+function showScreen(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('active', s.id===id)); }
+
+/* ===================== SONIDO (Web Audio, sin archivos) ===================== */
+let AC = null, muted = false;
+function ac(){
+  if(!AC){ try{ AC = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ AC=null; } }
+  if(AC && AC.state==='suspended') AC.resume().catch(()=>{});
+  return AC;
+}
+function tone(f, d, {type='sine', vol=.2, delay=0, slide=null}={}){
+  const c=ac(); if(!c||muted) return;
+  const t=c.currentTime+delay, o=c.createOscillator(), g=c.createGain();
+  o.type=type; o.frequency.setValueAtTime(f,t);
+  if(slide) o.frequency.exponentialRampToValueAtTime(slide,t+d);
+  g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(vol,t+.01); g.gain.exponentialRampToValueAtTime(.0001,t+d);
+  o.connect(g).connect(c.destination); o.start(t); o.stop(t+d+.05);
+}
+let NOISE=null;
+function noise(d, {vol=.2, delay=0, freq=1000, q=1, type='bandpass'}={}){
+  const c=ac(); if(!c||muted) return;
+  if(!NOISE){ NOISE=c.createBuffer(1,c.sampleRate*2,c.sampleRate); const ch=NOISE.getChannelData(0); for(let i=0;i<ch.length;i++) ch[i]=Math.random()*2-1; }
+  const t=c.currentTime+delay, s=c.createBufferSource(), f=c.createBiquadFilter(), g=c.createGain();
+  s.buffer=NOISE; f.type=type; f.frequency.value=freq; f.Q.value=q;
+  g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(.0001,t+d);
+  s.connect(f).connect(g).connect(c.destination); s.start(t, Math.random()); s.stop(t+d+.05);
+}
+const SFX = {
+  tick(){ noise(.03,{vol:.35,freq:3200,q:3}); tone(1400,.02,{type:'square',vol:.03}); },
+  click(){ tone(660,.07,{type:'square',vol:.05}); },
+  whoosh(){ noise(.7,{vol:.18,freq:700,q:.6}); },
+  correct(){ [523.25,659.25,783.99,1046.5].forEach((f,i)=>tone(f,.28,{type:'triangle',vol:.2,delay:i*.09})); tone(1318.5,.5,{type:'sine',vol:.12,delay:.38}); },
+  wrong(){ tone(220,.55,{type:'sawtooth',vol:.12,slide:100}); tone(233,.55,{type:'sawtooth',vol:.08,slide:110}); },
+  timeup(){ for(let i=0;i<3;i++) tone(190,.18,{type:'square',vol:.1,delay:i*.22}); },
+  count(n){ tone(n<=3?1250:900,.09,{type:'sine',vol:.18}); },
+  magic(){ [880,1175,1568,2093,2637].forEach((f,i)=>tone(f,.35,{type:'sine',vol:.09,delay:i*.06})); },
+  land(){ tone(392,.15,{type:'triangle',vol:.15}); tone(587,.3,{type:'triangle',vol:.15,delay:.12}); },
+  drumroll(sec){ const step=.045, n=Math.floor(sec/step); for(let i=0;i<n;i++) noise(.06,{vol:.04+.28*(i/n),freq:180+Math.random()*80,q:.9,delay:i*step}); },
+  cymbal(v=.3){ noise(1.6,{vol:v,freq:7000,q:.4,type:'highpass'}); tone(110,.4,{type:'sine',vol:.35,slide:50}); },
+  place(){ [392,523.25,659.25].forEach(f=>tone(f,.7,{type:'triangle',vol:.1})); },
+  fanfare(){
+    const seq=[[392,0,.16],[523.25,.16,.16],[659.25,.32,.16],[783.99,.48,.55],[659.25,1.05,.16],[783.99,1.22,1.1]];
+    seq.forEach(([f,d,l])=>{ tone(f,l,{type:'sawtooth',vol:.07,delay:d}); tone(f*2,l,{type:'square',vol:.025,delay:d}); tone(f/2,l,{type:'triangle',vol:.12,delay:d}); });
+    [523.25,659.25,783.99,1046.5].forEach(f=>tone(f,1.6,{type:'triangle',vol:.06,delay:2.3}));
+  },
+  applause(sec=3){ for(let i=0;i<sec*40;i++) noise(.035,{vol:.03+Math.random()*.12,freq:1500+Math.random()*2500,q:1.2,delay:Math.random()*sec}); }
+};
+
+/* ===================== CONFETI ===================== */
+const cc=$('#confetti'), cx=cc.getContext('2d'); let parts=[], confRun=false;
+const CONF_COLORS=['#ffd23f','#ff5d8f','#4dabf7','#51cf66','#b197fc','#ff922b','#ffffff'];
+function sizeC(){ cc.width=innerWidth; cc.height=innerHeight; } sizeC(); addEventListener('resize', sizeC);
+function mk(x,y,vx,vy,g){ return {x,y,vx,vy,g,r:Math.random()*6,vr:(Math.random()-.5)*.3,s:6+Math.random()*8,c:pick(CONF_COLORS),sq:Math.random()<.6,life:0}; }
+function burst(x,y,n=90,pow=1){ for(let i=0;i<n;i++){ const a=Math.random()*TAU, v=(4+Math.random()*10)*pow; parts.push(mk(x,y,Math.cos(a)*v,Math.sin(a)*v-6,.3)); } loopC(); }
+function rain(ms){ const end=performance.now()+ms; (function add(){ for(let i=0;i<7;i++) parts.push(mk(Math.random()*cc.width,-20,(Math.random()-.5)*3,2+Math.random()*3,.04)); if(performance.now()<end) setTimeout(add,70); })(); loopC(); }
+function loopC(){ if(confRun) return; confRun=true; requestAnimationFrame(stepC); }
+function stepC(){
+  cx.clearRect(0,0,cc.width,cc.height);
+  parts.forEach(p=>{ p.vy+=p.g; p.vx*=.99; p.x+=p.vx; p.y+=p.vy; p.r+=p.vr; p.life++;
+    cx.save(); cx.translate(p.x,p.y); cx.rotate(p.r); cx.fillStyle=p.c;
+    if(p.sq) cx.fillRect(-p.s/2,-p.s/4,p.s,p.s/2); else { cx.beginPath(); cx.arc(0,0,p.s/3,0,TAU); cx.fill(); }
+    cx.restore(); });
+  parts=parts.filter(p=>p.y<cc.height+30 && p.life<900);
+  if(parts.length) requestAnimationFrame(stepC); else { confRun=false; cx.clearRect(0,0,cc.width,cc.height); }
+}
+
+/* ===================== CONFIGURACIÓN ===================== */
+let teamCount=4; const names=[...DEFAULT_NAMES];
+function renderTeamInputs(){
+  $('#tCount').textContent=teamCount;
+  $('#teamInputs').innerHTML = Array.from({length:teamCount},(_,i)=>
+    `<div class="trow"><span class="dot" style="background:${TEAM_COLORS[i]};color:${TEAM_COLORS[i]}"></span><input maxlength="22" data-i="${i}" value="${esc(names[i])}"></div>`).join('');
+  updateQNote();
+}
+$('#teamInputs').addEventListener('input', e=>{ if(e.target.dataset.i!=null) names[+e.target.dataset.i]=e.target.value; });
+$('#tMinus').onclick=()=>{ if(teamCount>2){teamCount--;renderTeamInputs();} };
+$('#tPlus').onclick =()=>{ if(teamCount<6){teamCount++;renderTeamInputs();} };
+const secsIn=$('#secs'), qIn=$('#qmax');
+function syncSecs(){ $('#secsVal').textContent=secsIn.value+' s'; document.querySelectorAll('#secChips .chip').forEach(c=>c.classList.toggle('on',c.dataset.s===secsIn.value)); }
+secsIn.oninput=syncSecs;
+$('#secChips').onclick=e=>{ if(e.target.dataset.s){ secsIn.value=e.target.dataset.s; syncSecs(); } };
+function updateQNote(){
+  const q=+qIn.value; $('#qVal').textContent=q;
+  const per=Math.floor(q/teamCount), extra=q%teamCount;
+  $('#qNote').textContent = extra===0 ? `Cada equipo tendrá ${per} turnos.` : `Ojo: con ${q} preguntas no todos tienen los mismos turnos. Probá con ${q-extra} o ${q-extra+teamCount>50?q-extra:q-extra+teamCount}.`;
+}
+qIn.oninput=updateQNote;
+renderTeamInputs(); syncSecs();
+
+/* ===================== ESTADO ===================== */
+const S={subj:{fis:0,cc:0},teams:[],secs:30,maxQ:20,turn:0,asked:0,pool:{},cur:null,rot:0,spinning:false,timer:null,timeLeft:0,paused:false,light:0,podRun:0};
+
+function newGame(keepTeams){
+  if(!keepTeams){
+    S.teams = names.slice(0,teamCount).map((n,i)=>({name:(n||'').trim()||`Equipo ${i+1}`,color:TEAM_COLORS[i]}));
+    S.secs=+secsIn.value; S.maxQ=Math.min(+qIn.value, Q.length);
+  }
+  S.teams.forEach(t=>{ t.score=0; t.correct=0; t.wild={ia:true,pista:true,mitad:true}; });
+  S.pool={}; Object.keys(CATS).forEach(k=>S.pool[k]=shuffle(Q.map((q,i)=>q.c===k?i:-1).filter(i=>i>=0)));
+  S.turn=0; S.asked=0; S.cur=null; S.subj={fis:0,cc:0}; S.rot=Math.random()*TAU; S.podRun++;
+  $('#result').className='result'; $('#result').textContent='';
+  $('#dim').classList.remove('on');
+  showScreen('game'); renderScores(); updateSide(); drawWheel();
+}
+$('#startBtn').onclick=()=>{ ac(); SFX.magic(); newGame(false); };
+$('#againBtn').onclick=()=>{ SFX.click(); newGame(true); };
+$('#newBtn').onclick=()=>{ SFX.click(); S.podRun++; $('#dim').classList.remove('on'); showScreen('setup'); };
+
+/* ===================== MARCADOR ===================== */
+function renderScores(bump=-1){
+  $('#scoreboard').innerHTML = S.teams.map((t,i)=>`
+    <div class="team ${i===S.turn?'turn':''}" style="--tc:${t.color};--tcg:${rgba(t.color,.35)}">
+      <div class="tname">${esc(t.name)}</div>
+      <div class="tscore ${i===bump?'bump':''}">${t.score}<small>pts</small></div>
+      <div class="tmeta">
+        <span class="wilds">${Object.keys(WILD).map(k=>`<span class="${t.wild[k]?'':'used'}" title="${WILD[k].label}">${WILD[k].icon}</span>`).join('')}</span>
+        <span class="adj"><button data-adj="-1" data-i="${i}" title="Restar 10">−</button> <button data-adj="1" data-i="${i}" title="Sumar 10">+</button></span>
+      </div>
+    </div>`).join('');
+}
+$('#scoreboard').addEventListener('click', e=>{
+  const b=e.target.closest('[data-adj]'); if(!b) return;
+  const t=S.teams[+b.dataset.i], d=+b.dataset.adj;
+  if(d<0 && t.correct<=0) return;
+  t.correct+=d; t.score+=10*d; SFX.click(); renderScores(+b.dataset.i);
+});
+function remainingCats(){ return Object.keys(CATS).filter(k=>S.pool[k] && S.pool[k].length); }
+function updateSide(){
+  const t=S.teams[S.turn];
+  $('#progress').textContent=`Pregunta ${Math.min(S.asked+1,S.maxQ)} de ${S.maxQ}`;
+  const tc=$('#turnCard'); tc.style.setProperty('--tc',t.color); tc.style.setProperty('--tcg',rgba(t.color,.35));
+  tc.innerHTML=`<div class="lbl">Le toca girar a</div><div class="nm">${esc(t.name)}</div>`;
+  $('#legend').innerHTML=Object.keys(SUBJ).map(sj=>`<h4>${SUBJ[sj].icon} ${SUBJ[sj].name}<span>${S.subj[sj]} jugadas</span></h4>`+
+    Object.keys(CATS).filter(k=>CATS[k].subj===sj).map(k=>{const n=S.pool[k].length;return `<div class="${n?'':'empty'}"><i style="background:${CATS[k].color}"></i>${CATS[k].icon} ${CATS[k].name}<span class="n">${n} preg.</span></div>`;}).join('')).join('');
+}
+
+/* ===================== RULETA ===================== */
+const wc=$('#wheel'), wx=wc.getContext('2d');
+// La ruleta se reparte mitad Física / mitad Computación; cada materia divide su mitad entre sus categorías activas
+function wheelSegs(){
+  const subs=Object.keys(SUBJ).filter(sj=>remainingCats().some(k=>CATS[k].subj===sj));
+  const segs=[]; let acc=0;
+  subs.forEach(sj=>{ const ks=remainingCats().filter(k=>CATS[k].subj===sj), w=TAU/subs.length/ks.length;
+    ks.forEach(k=>{ segs.push({k,a0:acc,a1:acc+w}); acc+=w; }); });
+  return segs;
+}
+function segAt(rot,segs){ const a=norm(1.5*Math.PI-rot); const i=segs.findIndex(s=>a>=s.a0&&a<s.a1); return i<0?segs.length-1:i; }
+function drawWheel(){
+  const W=wc.width, c=W/2, R=c-10, r=R-26, segs=wheelSegs();
+  wx.clearRect(0,0,W,W);
+  wx.beginPath(); wx.arc(c,c,R,0,TAU); wx.fillStyle='#141a3a'; wx.fill();
+  wx.lineWidth=8; wx.strokeStyle='#ffd23f'; wx.stroke();
+  for(let i=0;i<30;i++){ const a=i/30*TAU; wx.beginPath(); wx.arc(c+Math.cos(a)*(R-13),c+Math.sin(a)*(R-13),5.5,0,TAU);
+    wx.fillStyle=(i+S.light)%2? '#fff7c2':'#ff5d8f'; wx.shadowColor=wx.fillStyle; wx.shadowBlur=12; wx.fill(); }
+  wx.shadowBlur=0;
+  segs.forEach((sg,i)=>{
+    const k=sg.k, a0=S.rot+sg.a0, a1=S.rot+sg.a1, mid=(a0+a1)/2;
+    wx.beginPath(); wx.moveTo(c,c); wx.arc(c,c,r,a0,a1); wx.closePath();
+    wx.fillStyle=CATS[k].color; wx.fill();
+    wx.lineWidth=4; wx.strokeStyle='rgba(255,255,255,.85)'; wx.stroke();
+    wx.save(); wx.translate(c,c); wx.rotate(mid);
+    wx.textAlign='center'; wx.textBaseline='middle'; wx.font='42px sans-serif';
+    wx.fillText(CATS[k].icon, r-44, 0);
+    const label=CATS[k].short, maxW=r-86-100; let fs=34;
+    wx.font=`700 ${fs}px Fredoka, sans-serif`; const mw=wx.measureText(label).width; if(mw>maxW){ fs=Math.floor(fs*maxW/mw); wx.font=`700 ${fs}px Fredoka, sans-serif`; }
+    wx.textAlign='right'; wx.lineWidth=6; wx.strokeStyle='rgba(10,15,36,.55)'; wx.strokeText(label, r-84, 2);
+    wx.fillStyle='#fff'; wx.fillText(label, r-84, 2);
+    wx.restore();
+  });
+  // línea gruesa entre materias
+  segs.forEach((sg,i)=>{ const prev=segs[(i-1+segs.length)%segs.length]; if(segs.length>1 && CATS[prev.k].subj!==CATS[sg.k].subj){
+    const a=S.rot+sg.a0; wx.beginPath(); wx.moveTo(c,c); wx.lineTo(c+Math.cos(a)*r,c+Math.sin(a)*r); wx.lineWidth=10; wx.strokeStyle='#0a0f24'; wx.stroke(); } });
+  const g=wx.createRadialGradient(c,c,r*.2,c,c,r); g.addColorStop(0,'rgba(255,255,255,.12)'); g.addColorStop(.7,'rgba(0,0,0,0)'); g.addColorStop(1,'rgba(0,0,0,.28)');
+  wx.beginPath(); wx.arc(c,c,r,0,TAU); wx.fillStyle=g; wx.fill();
+}
+function spin(){
+  if(S.spinning || $('#qModal').classList.contains('open') || !$('#game').classList.contains('active')) return;
+  const segs=wheelSegs(); if(!segs.length){ finish(); return; }
+  ac(); S.spinning=true; $('#spinBtn').disabled=true; $('#result').className='result'; $('#result').textContent='';
+  SFX.whoosh();
+  // equilibrio: si una materia va atrasada, la ruleta cae en esa materia
+  const subs=[...new Set(segs.map(s=>CATS[s.k].subj))];
+  let sj=pick(subs);
+  if(subs.length>1){ const f=S.subj.fis, k=S.subj.cc; if(f<k) sj='fis'; else if(k<f) sj='cc'; }
+  const target=pick(segs.filter(s=>CATS[s.k].subj===sj));
+  const targetA=target.a0+(.15+Math.random()*.7)*(target.a1-target.a0), desired=norm(1.5*Math.PI-targetA);
+  const start=S.rot, end=start+norm(desired-norm(start))+TAU*(5+Math.floor(Math.random()*3));
+  const dur=4600+Math.random()*1200; let t0=null, last=segAt(start,segs);
+  const ptr=$('#pointer');
+  function frame(ts){
+    if(t0===null) t0=ts;
+    const p=Math.min(1,(ts-t0)/dur), e=1-Math.pow(1-p,4);
+    S.rot=start+(end-start)*e; S.light=Math.floor(ts/110)%2;
+    const si=segAt(S.rot,segs); if(si!==last){ last=si; SFX.tick(); ptr.classList.remove('wiggle'); void ptr.offsetWidth; ptr.classList.add('wiggle'); }
+    drawWheel();
+    if(p<1) requestAnimationFrame(frame);
+    else { S.spinning=false; landed(target.k); }
+  }
+  requestAnimationFrame(frame);
+}
+function landed(k){
+  SFX.land();
+  const r=$('#result'); r.style.setProperty('--rc',CATS[k].color); r.textContent=`${CATS[k].icon} ¡${CATS[k].name}!`; r.className='result show';
+  setTimeout(()=>openQuestion(k), 1000);
+}
+$('#spinBtn').onclick=spin;
+
+/* ===================== PREGUNTA ===================== */
+function openQuestion(k){
+  const qi=S.pool[k].pop(), q=Q[qi], order=shuffle([0,1,2,3]);
+  S.subj[CATS[k].subj]++;
+  S.cur={q,cat:k,opts:order.map(i=>q.o[i]),correct:order.indexOf(0),answering:S.turn,tried:new Set(),wrongTried:new Set(),removed:new Set(),active:true,token:Math.random()};
+  const card=$('#qcard'); card.style.setProperty('--cat',CATS[k].color);
+  $('#qcat').textContent=`${CATS[k].icon} ${CATS[k].name}`;
+  $('#qnum').textContent=`${SUBJ[CATS[k].subj].icon} ${SUBJ[CATS[k].subj].name} · Pregunta ${S.asked+1} de ${S.maxQ}`;
+  $('#qtext').textContent=q.q;
+  $('#opts').innerHTML=S.cur.opts.map((t,i)=>`<button class="opt" data-i="${i}"><span class="let">${'ABCD'[i]}</span><span>${esc(t)}</span></button>`).join('');
+  $('#infos').innerHTML=''; $('#feedback').innerHTML=''; $('#actions').innerHTML='';
+  renderAnswering(); renderWild();
+  $('#qModal').classList.add('open'); card.style.animation='none'; void card.offsetWidth; card.style.animation='';
+  startTimer();
+}
+function optBtn(i){ return $(`#opts .opt[data-i="${i}"]`); }
+function refreshOpts(){
+  const c=S.cur;
+  document.querySelectorAll('#opts .opt').forEach(b=>{ const i=+b.dataset.i;
+    b.disabled=!c.active || c.removed.has(i) || c.wrongTried.has(i);
+    b.classList.toggle('removed', c.removed.has(i)); });
+}
+function renderAnswering(){
+  const t=S.teams[S.cur.answering], el=$('#answering');
+  el.style.setProperty('--tc',t.color); el.innerHTML=`Responde: <b>${esc(t.name)}</b>`;
+  el.classList.remove('blink'); void el.offsetWidth; el.classList.add('blink');
+}
+function renderWild(){
+  const c=S.cur, t=S.teams[c.answering];
+  $('#wildrow').innerHTML=`<span class="lbl">Comodines de ${esc(t.name)}:</span>`+Object.keys(WILD).map(k=>
+    `<button class="wbtn" data-w="${k}" ${(!t.wild[k]||!c.active)?'disabled':''}><span>${WILD[k].icon}</span>${WILD[k].label}</button>`).join('');
+}
+$('#opts').addEventListener('click', e=>{ const b=e.target.closest('.opt'); if(b) answer(+b.dataset.i); });
+$('#wildrow').addEventListener('click', e=>{ const b=e.target.closest('[data-w]'); if(b) useWild(b.dataset.w); });
+
+/* ---- temporizador ---- */
+const CIRC=2*Math.PI*44; $('#tfg').style.strokeDasharray=CIRC;
+function startTimer(){
+  stopTimer(); S.timeLeft=S.secs; S.paused=false; updateTimer(true);
+  S.timer=setInterval(()=>{
+    if(S.paused) return;
+    S.timeLeft--; updateTimer();
+    if(S.timeLeft>0 && S.timeLeft<=5) SFX.count(S.timeLeft);
+    if(S.timeLeft<=0){ stopTimer(); timeUp(); }
+  },1000);
+}
+function stopTimer(){ if(S.timer){ clearInterval(S.timer); S.timer=null; } }
+function updateTimer(reset){
+  const fg=$('#tfg'), tm=$('#timer');
+  if(reset){ fg.style.transition='none'; fg.style.strokeDashoffset=0; void fg.getBoundingClientRect(); fg.style.transition=''; }
+  else fg.style.strokeDashoffset=CIRC*(1-S.timeLeft/S.secs);
+  $('#tnum').textContent=S.paused?'⏸':Math.max(0,S.timeLeft);
+  tm.classList.toggle('warn', S.timeLeft<=5); tm.classList.toggle('paused', S.paused);
+}
+$('#timer').onclick=()=>{ if(!S.timer) return; S.paused=!S.paused; SFX.click(); updateTimer(); };
+
+/* ---- respuestas ---- */
+function answer(i){
+  const c=S.cur; if(!c||!c.active||c.removed.has(i)||c.wrongTried.has(i)) return;
+  c.active=false; stopTimer();
+  if(i===c.correct) handleCorrect(i); else handleWrong(i);
+}
+function timeUp(){ const c=S.cur; if(!c||!c.active) return; c.active=false; handleWrong(null); }
+function handleCorrect(i){
+  const c=S.cur, t=S.teams[c.answering];
+  t.score+=10; t.correct++;
+  refreshOpts(); renderWild();
+  const b=optBtn(i); b.classList.add('correct');
+  SFX.correct(); const r=b.getBoundingClientRect(); burst(r.left+r.width/2, r.top+r.height/2, 110, 1);
+  $('#feedback').innerHTML=`<span class="ok">✅ ¡Correcto! +10 puntos para ${esc(t.name)}</span>`;
+  renderScores(c.answering);
+  setActions([{label:'Siguiente turno ▶', cls:'primary', fn:nextTurn}]);
+}
+function handleWrong(i){
+  const c=S.cur, t=S.teams[c.answering];
+  c.tried.add(c.answering);
+  if(i!==null){ c.wrongTried.add(i); optBtn(i).classList.add('wrong'); SFX.wrong(); } else SFX.timeup();
+  refreshOpts(); renderWild();
+  const msg = i===null ? '⏰ ¡Se acabó el tiempo!' : '❌ ¡Incorrecto!';
+  const left=c.opts.map((_,k)=>k).filter(k=>!c.removed.has(k)&&!c.wrongTried.has(k));
+  const others=untried();
+  if(others.length && left.length>1){
+    $('#feedback').innerHTML=`<span class="bad">${msg}</span><small>${esc(t.name)} no suma. ¿A qué equipo le pasamos la pregunta?</small>`;
+    setActions([
+      ...others.map(j=>({label:`➜ ${S.teams[j].name}`, cls:'primary tpass', color:S.teams[j].color, fn:()=>passTo(j)})),
+      {label:'Revelar respuesta', cls:'ghost', fn:()=>{ reveal(); setActions([{label:'Siguiente turno ▶',cls:'primary',fn:nextTurn}]); }}
+    ]);
+  } else {
+    $('#feedback').innerHTML=`<span class="bad">${msg}</span>`;
+    reveal();
+    setActions([{label:'Siguiente turno ▶', cls:'primary', fn:nextTurn}]);
+  }
+}
+function untried(){
+  const c=S.cur, n=S.teams.length, out=[];
+  for(let k=1;k<n;k++){ const j=(c.answering+k)%n; if(!c.tried.has(j)) out.push(j); }
+  return out;
+}
+function reveal(){
+  const c=S.cur; optBtn(c.correct).classList.add('reveal');
+  $('#feedback').insertAdjacentHTML('beforeend',`<small>La respuesta correcta era: <b style="color:#4ade80">${'ABCD'[c.correct]}) ${esc(c.opts[c.correct])}</b></small>`);
+}
+function passTo(j){
+  const c=S.cur; c.answering=j; c.active=true; c.token=Math.random();
+  $('#infos').innerHTML=''; $('#feedback').innerHTML=''; $('#actions').innerHTML='';
+  refreshOpts(); renderAnswering(); renderWild(); SFX.click(); startTimer();
+}
+function setActions(list){
+  const a=$('#actions'); a.innerHTML='';
+  list.forEach(x=>{ const b=document.createElement('button'); b.className='abtn '+x.cls; b.textContent=x.label; if(x.color){ b.style.background=x.color; b.style.color='#0a0f24'; b.style.boxShadow='0 6px 0 rgba(0,0,0,.35)'; } b.onclick=()=>{ SFX.click(); x.fn(); }; a.appendChild(b); });
+}
+function nextTurn(){
+  $('#qModal').classList.remove('open'); stopTimer(); S.cur=null;
+  S.asked++; S.turn=(S.turn+1)%S.teams.length;
+  $('#spinBtn').disabled=false; $('#result').className='result'; $('#result').textContent='';
+  renderScores(); updateSide(); drawWheel();
+  if(S.asked>=S.maxQ || !remainingCats().length) setTimeout(finish, 500);
+}
+
+/* ---- comodines ---- */
+function useWild(k){
+  const c=S.cur; if(!c||!c.active) return; const t=S.teams[c.answering]; if(!t.wild[k]) return;
+  t.wild[k]=false; SFX.magic(); renderWild(); renderScores();
+  const box=$('#infos');
+  if(k==='pista'){
+    box.insertAdjacentHTML('beforeend',`<div class="info" style="border-color:#4dabf7">🧑‍🏫 <b>Pista del profe:</b> ${esc(c.q.p)}</div>`);
+  } else if(k==='mitad'){
+    const wrong=shuffle(c.opts.map((_,i)=>i).filter(i=>i!==c.correct&&!c.removed.has(i)&&!c.wrongTried.has(i))).slice(0,2);
+    wrong.forEach(i=>c.removed.add(i)); refreshOpts();
+    box.insertAdjacentHTML('beforeend',`<div class="info" style="border-color:#f472b6">✂️ <b>50/50:</b> se eliminaron ${wrong.length} opciones incorrectas.</div>`);
+  } else if(k==='ia'){
+    const tok=c.token, id='ia'+Date.now();
+    box.insertAdjacentHTML('beforeend',`<div class="info" id="${id}" style="border-color:#a78bfa">🤖 La IA está pensando<span class="dots"></span></div>`);
+    setTimeout(()=>{
+      if(S.cur!==c || c.token!==tok || !c.active) return;
+      const el=document.getElementById(id); if(!el) return;
+      const wrongs=c.opts.map((_,i)=>i).filter(i=>i!==c.correct&&!c.removed.has(i)&&!c.wrongTried.has(i));
+      const sug=(Math.random()<.8||!wrongs.length)?c.correct:pick(wrongs);
+      const conf=sug===c.correct?70+Math.floor(Math.random()*26):55+Math.floor(Math.random()*25);
+      tone(1200,.08,{vol:.1}); tone(1600,.1,{vol:.1,delay:.08});
+      el.innerHTML=`🤖 <b>La IA sugiere:</b> ${'ABCD'[sug]}) ${esc(c.opts[sug])} <span class="conf">confianza ${conf}%</span><small>Ojo: la IA también se equivoca. ¿Le creen o no?</small>`;
+    },1700);
+  }
+}
+
+/* ===================== TECLADO / HERRAMIENTAS ===================== */
+addEventListener('keydown', e=>{
+  if(e.target.tagName==='INPUT') return;
+  const qOpen=$('#qModal').classList.contains('open');
+  if(e.code==='Space' && $('#game').classList.contains('active') && !qOpen && !$('#cModal').classList.contains('open')){ e.preventDefault(); spin(); return; }
+  if(qOpen){
+    const m={a:0,b:1,c:2,d:3,'1':0,'2':1,'3':2,'4':3}[e.key.toLowerCase()];
+    if(m!==undefined) answer(m);
+    if(e.key==='Enter'){ const p=$('#actions .primary'); if(p){ e.preventDefault(); p.click(); } }
+  }
+});
+$('#btnMute').onclick=()=>{ muted=!muted; $('#btnMute').textContent=muted?'🔇':'🔊'; if(!muted) SFX.click(); };
+$('#btnFull').onclick=()=>{ try{ if(!document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{}); else document.exitFullscreen().catch(()=>{}); }catch(e){} };
+$('#btnEnd').onclick=()=>{ $('#cModal').classList.add('open'); };
+$('#cNo').onclick=()=>$('#cModal').classList.remove('open');
+$('#cYes').onclick=()=>{ $('#cModal').classList.remove('open'); finish(); };
+
+/* ===================== PODIO ===================== */
+function finish(){
+  stopTimer(); $('#qModal').classList.remove('open'); S.cur=null;
+  showScreen('podium'); runPodium();
+}
+async function runPodium(){
+  const run=++S.podRun, alive=()=>run===S.podRun;
+  const sorted=S.teams.map(t=>({...t})).sort((a,b)=>b.score-a.score||b.correct-a.correct);
+  sorted.forEach((t,k)=>{ t.rank = (k>0 && t.score===sorted[k-1].score && t.correct===sorted[k-1].correct) ? sorted[k-1].rank : k+1; });
+  const top=sorted.slice(0,3), medal=r=>['🥇','🥈','🥉'][r-1]||'🎖️';
+  const slots=[1,0,2].filter(i=>top[i]);
+  const stage=$('#stage'); stage.className='stage';
+  stage.innerHTML=slots.map(i=>{ const t=top[i]; return `
+    <div class="ped p${i+1}" id="ped${i}">
+      <div class="info2">
+        ${t.rank===1?'<div class="crown">👑</div>':''}
+        <div class="medal">${medal(t.rank)}</div>
+        <div class="avatar" style="background:${t.color}">${esc((t.name.replace(/^equipo\s+/i,'')||t.name).charAt(0).toUpperCase())}</div>
+        <div class="pname">${esc(t.name)}</div>
+        <div class="pscore">${t.score} pts · ${t.correct} correctas</div>
+      </div>
+      <div class="block" id="blk${i}">?</div>
+    </div>`; }).join('');
+  const ttl=$('#ptitle'), win=$('#winner'), rest=$('#rest'), pa=$('#pactions');
+  win.className='winner'; win.textContent=''; rest.className='rest'; pa.className='pactions';
+  rest.innerHTML=sorted.slice(3).map(t=>`<div>${t.rank}º ${esc(t.name)} — ${t.score} pts</div>`).join('');
+  const setT=txt=>{ ttl.textContent=txt; ttl.classList.remove('zoom'); void ttl.offsetWidth; ttl.classList.add('zoom'); };
+  const show=i=>{ const p=$('#ped'+i); if(!p) return; p.classList.add('show'); $('#blk'+i).textContent=top[i].rank; const r=p.getBoundingClientRect(); burst(r.left+r.width/2, r.top+r.height*.35, i===0?160:70, i===0?1.3:.8); };
+
+  setT('¡Terminó la partida!'); SFX.drumroll(2.2);
+  await sleep(2400); if(!alive()) return;
+  if(top[2]){ setT('En el tercer puesto...'); SFX.drumroll(1.6); await sleep(1800); if(!alive()) return; show(2); SFX.cymbal(.2); SFX.place(); await sleep(1800); if(!alive()) return; }
+  if(top[1]){ setT('En el segundo puesto...'); SFX.drumroll(1.8); await sleep(2000); if(!alive()) return; show(1); SFX.cymbal(.25); SFX.place(); await sleep(1900); if(!alive()) return; }
+  const tieFirst=sorted.filter(t=>t.rank===1);
+  setT(tieFirst.length>1 ? '¡Hay algo increíble!...' : 'Y el GRAN GANADOR es...');
+  $('#dim').classList.add('on'); stage.classList.add('suspense'); SFX.drumroll(3.4);
+  await sleep(3600); if(!alive()) return;
+  stage.classList.remove('suspense'); $('#dim').classList.remove('on');
+  const fl=$('#flash'); fl.classList.remove('go'); void fl.offsetWidth; fl.classList.add('go');
+  show(0); stage.classList.add('glory'); SFX.cymbal(.35); SFX.fanfare(); SFX.applause(4); rain(7000);
+  setTimeout(()=>{ if(alive()){ burst(innerWidth*.2,innerHeight*.5,90,1.1); burst(innerWidth*.8,innerHeight*.5,90,1.1); } },700);
+  if(tieFirst.length>1){ setT('🏆 ¡EMPATE EN EL PRIMER PUESTO!'); win.textContent='¡Felicitaciones a '+tieFirst.map(t=>t.name).join(' y ')+'!'; }
+  else { setT('🏆 ¡CAMPEONES!'); win.textContent=`¡Felicitaciones, ${sorted[0].name}! 🎉`; }
+  await sleep(600); if(!alive()) return; win.classList.add('show');
+  await sleep(1400); if(!alive()) return; rest.classList.add('show'); pa.classList.add('show');
+}
+
+if(document.fonts && document.fonts.ready) document.fonts.ready.then(()=>{ if($('#game').classList.contains('active')) drawWheel(); });
+</script>
+</body>
+</html>
